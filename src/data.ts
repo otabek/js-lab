@@ -55,6 +55,12 @@ export const createMockPost = async (post: Post): Promise<Post> => {
   })
 }
 
-export const getPostById = (id: number) => {
-  return posts.find((post) => post.id === id)
+export const getPostById = (id: number): Promise<Post | undefined> => {
+  // Simulate fetching a single post by ID
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const post = posts.find((post) => post.id === id)
+      resolve(post)
+    }, 1000) // Simulate network latency
+  })
 }

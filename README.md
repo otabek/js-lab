@@ -1,50 +1,15 @@
-# React + TypeScript + Vite
+# React Query Demo
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Introduction
 
-Currently, two official plugins are available:
+This is a demo React app that demonstrates the use of `react-query` to fetch, create, and display posts using mock data. The task is to add pagination functionality for fetching posts, simulating an API behavior where only a subset of posts are fetched at a time.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Task 1: Implement Paginated Queries
 
-## Expanding the ESLint configuration
+Your task is to implement pagination for the post list. This will allow the app to load posts in chunks (e.g., 5 posts at a time), with the ability to load more posts as the user scrolls down or clicks a "Load More" button.
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+## Task 1: Implement Infinite Query
 
-- Configure the top-level `parserOptions` property like this:
+Use `useInfiniteQuery` to implement infinte queries. This will allow the app to load posts in batches (e.g., 5 posts at a time), automatically fetching more posts as the user scrolls down
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
-
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
-
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
-
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
-```
+## Checkout to the new branch in order to implement each task
