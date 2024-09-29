@@ -1,23 +1,23 @@
-import React, { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createMockPost, fetchMockPosts, getPostById } from './data'
+import React, { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createMockPost, fetchMockPosts, getPostById } from "./data";
 
 function usePost(postId: number) {
   return useQuery({
-    queryKey: ['post', postId],
+    queryKey: ["post", postId],
     queryFn: () => getPostById(postId),
     enabled: !!postId,
-  })
+  });
 }
 
 const Post = ({
   postId,
   setPostId,
 }: {
-  postId: number
-  setPostId: React.Dispatch<React.SetStateAction<number>>
+  postId: number;
+  setPostId: React.Dispatch<React.SetStateAction<number>>;
 }) => {
-  const { status, data, error, isFetching } = usePost(postId)
+  const { status, data, error, isFetching } = usePost(postId);
 
   return (
     <div>
@@ -26,9 +26,9 @@ const Post = ({
           Back
         </a>
       </div>
-      {!postId || status === 'pending' ? (
-        'Loading...'
-      ) : status === 'error' ? (
+      {!postId || status === "pending" ? (
+        "Loading..."
+      ) : status === "error" ? (
         <span>Error: {error.message}</span>
       ) : (
         <>
@@ -36,50 +36,50 @@ const Post = ({
           <div>
             <p>{data?.body}</p>
           </div>
-          <div>{isFetching ? 'Background Updating...' : ' '}</div>
+          <div>{isFetching ? "Background Updating..." : " "}</div>
         </>
       )}
     </div>
-  )
-}
+  );
+};
 
 const Posts = ({
   setPostId,
 }: {
-  setPostId: React.Dispatch<React.SetStateAction<number>>
+  setPostId: React.Dispatch<React.SetStateAction<number>>;
 }) => {
-  const queryClient = useQueryClient()
-  const [title, setTitle] = useState('')
-  const [body, setBody] = useState('')
+  const queryClient = useQueryClient();
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
 
   const {
     data: posts,
     isLoading,
     isError,
-  } = useQuery({ queryKey: ['posts'], queryFn: fetchMockPosts })
+  } = useQuery({ queryKey: ["posts"], queryFn: fetchMockPosts });
 
   const mutation = useMutation({
     mutationFn: createMockPost,
     onSuccess: () => {
       // Invalidate and refetch the posts query after a successful mutation
-      queryClient.invalidateQueries({ queryKey: ['posts'] })
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
     },
-  })
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     mutation.mutate({
       title,
       body,
       userId: 1, // default user ID
       id: Date.now(),
-    })
-    setTitle('')
-    setBody('')
-  }
+    });
+    setTitle("");
+    setBody("");
+  };
 
-  if (isLoading) return <div>Loading...</div>
-  if (isError) return <div>Error loading posts</div>
+  if (isLoading) return <div>Loading...</div>;
+  if (isError) return <div>Error loading posts</div>;
 
   return (
     <div>
@@ -113,10 +113,10 @@ const Posts = ({
               style={
                 // We can access the query data here to show bold links for
                 // ones that are cached
-                queryClient.getQueryData(['post', post.id])
+                queryClient.getQueryData(["post", post.id])
                   ? {
-                      fontWeight: 'bold',
-                      color: 'green',
+                      fontWeight: "bold",
+                      color: "green",
                     }
                   : {}
               }
@@ -128,11 +128,11 @@ const Posts = ({
         ))}
       </ul>
     </div>
-  )
-}
+  );
+};
 
 const App = () => {
-  const [postId, setPostId] = React.useState(-1)
+  const [postId, setPostId] = React.useState(-1);
 
   return (
     <div>
@@ -142,7 +142,7 @@ const App = () => {
         <Posts setPostId={setPostId} />
       )}
     </div>
-  )
-}
+  );
+};
 
-export default App
+export default App;
