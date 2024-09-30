@@ -8,7 +8,7 @@ This is a demo React app that demonstrates the use of `react-query` to fetch, cr
 
 Your task is to implement pagination for the post list. This will allow the app to load posts in chunks (e.g., 5 posts at a time), with the ability to load more posts as the user scrolls down or clicks a "Load More" button.
 
-## Task 1: Implement Infinite Query
+## Task 2: Implement Infinite Query
 
 Use `useInfiniteQuery` to implement infinte queries. This will allow the app to load posts in batches (e.g., 5 posts at a time), automatically fetching more posts as the user scrolls down
 
