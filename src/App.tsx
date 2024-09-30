@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createMockPost, fetchMockPosts, getPostById } from './data'
 
 function usePost(postId: number) {
@@ -10,13 +10,7 @@ function usePost(postId: number) {
   })
 }
 
-const Post = ({
-  postId,
-  setPostId,
-}: {
-  postId: number
-  setPostId: React.Dispatch<React.SetStateAction<number>>
-}) => {
+const Post = ({ postId, setPostId }: { postId: number; setPostId: React.Dispatch<React.SetStateAction<number>> }) => {
   const { status, data, error, isFetching } = usePost(postId)
 
   return (
@@ -43,26 +37,31 @@ const Post = ({
   )
 }
 
-const Posts = ({
-  setPostId,
-}: {
-  setPostId: React.Dispatch<React.SetStateAction<number>>
-}) => {
+const Posts = ({ setPostId }: { setPostId: React.Dispatch<React.SetStateAction<number>> }) => {
   const queryClient = useQueryClient()
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
 
   const {
-    data: posts,
+    data,
     isLoading,
     isError,
-  } = useQuery({ queryKey: ['posts'], queryFn: fetchMockPosts })
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['posts'],
+    queryFn: ({ pageParam = 1 }) => fetchMockPosts(pageParam, 5),
+    getNextPageParam: (lastPage) => {
+      return lastPage.length === 5 ? lastPage.length / 5 + 1 : undefined
+    },
+  })
 
   const mutation = useMutation({
     mutationFn: createMockPost,
     onSuccess: () => {
       // Invalidate and refetch the posts query after a successful mutation
-      queryClient.invalidateQueries({ queryKey: ['posts'] })
+      queryClient.invalidateQueries(['posts'])
     },
   })
 
@@ -105,34 +104,57 @@ const Posts = ({
       </form>
 
       <ul>
-        {posts?.map((post) => (
-          <li key={post.id}>
-            <a
-              onClick={() => setPostId(post.id)}
-              href="#"
-              style={
-                // We can access the query data here to show bold links for
-                // ones that are cached
-                queryClient.getQueryData(['post', post.id])
-                  ? {
-                      fontWeight: 'bold',
-                      color: 'green',
-                    }
-                  : {}
-              }
-            >
-              <h3>{post.title}</h3>
-            </a>
-            <p>{post.body}</p>
-          </li>
-        ))}
+        {data?.pages.map((page) =>
+          page.map((post) => (
+            <li key={post.id}>
+              <a
+                onClick={() => setPostId(post.id)}
+                href="#"
+                style={
+                  queryClient.getQueryData(['post', post.id])
+                    ? { fontWeight: 'bold', color: 'green' }
+                    : {}
+                }
+              >
+                <h3>{post.title}</h3>
+              </a>
+              <p>{post.body}</p>
+            </li>
+          ))
+        )}
       </ul>
+
+      <div>
+        <button
+          onClick={() => fetchNextPage()}
+          disabled={!hasNextPage || isFetchingNextPage}
+        >
+          {isFetchingNextPage ? 'Loading more...' : hasNextPage ? 'Load More' : 'No More Posts'}
+        </button>
+      </div>
+
+      {/* Scroll event listener for infinite scroll */}
+      <div
+        style={{ height: '100px', overflow: 'auto' }}
+        onScroll={(e) => {
+          if (
+            e.currentTarget.scrollTop + e.currentTarget.clientHeight >=
+              e.currentTarget.scrollHeight &&
+            hasNextPage &&
+            !isFetchingNextPage
+          ) {
+            fetchNextPage()
+          }
+        }}
+      >
+        <p>Scroll down to load more posts...</p>
+      </div>
     </div>
   )
 }
 
 const App = () => {
-  const [postId, setPostId] = React.useState(-1)
+  const [postId, setPostId] = useState(-1)
 
   return (
     <div>
