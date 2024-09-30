@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { userRegisterSchema, UserRegisterForm } from "./validators";
 import { useForm } from "react-hook-form";
-import { TextField, Button, Box, FormControl } from "@mui/material";
+import { TextField, Button, FormControl } from "@mui/material";
 
 export function App() {
     const {

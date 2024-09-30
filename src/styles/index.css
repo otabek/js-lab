@@ -15,23 +15,23 @@
         sans-serif;
 }
 
-form {
+form,
+h1 {
     text-align: center;
 }
 
 h1 {
     font-size: 45px;
-    text-align: center;
     margin: 40px;
 }
 
 .initials {
     display: flex;
     column-gap: 15px;
-    margin-bottom: 25px;
 }
 
-.email {
+.email,
+.initials {
     margin-bottom: 25px;
 }
 
