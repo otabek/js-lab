@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createMockPost, fetchMockPostsByPage, getPostById } from './data'
 
 function usePost(postId: number) {
@@ -51,16 +51,19 @@ const Posts = ({
   const queryClient = useQueryClient()
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
-  const [page, setPage] = useState(1)
 
   const {
-    data: posts,
+    data,
     isLoading,
     isError,
-  } = useQuery({
-    queryKey: ['posts', page],
-    queryFn: () => fetchMockPostsByPage(page, 5),
-    // keepPreviousData: true, // Keep previous data while fetching the next page
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['posts'],
+    queryFn: ({ pageParam = 1 }) => fetchMockPostsByPage(pageParam, 5),
+    getNextPageParam: (lastPage, pages) => (lastPage.length === 5 ? pages.length + 1 : undefined),
+    initialPageParam: 1,  // Указываем начальный параметр страницы
   })
 
   const mutation = useMutation({
@@ -82,11 +85,18 @@ const Posts = ({
     setBody('')
   }
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
+    if (scrollHeight - scrollTop === clientHeight && hasNextPage) {
+      fetchNextPage()
+    }
+  }
+
   if (isLoading) return <div>Loading...</div>
   if (isError) return <div>Error loading posts</div>
 
   return (
-    <div>
+    <div onScroll={handleScroll} style={{ height: '400px', overflowY: 'auto' }}>
       <h1>Posts</h1>
 
       <form onSubmit={handleSubmit}>
@@ -109,38 +119,35 @@ const Posts = ({
       </form>
 
       <ul>
-        {posts?.map((post) => (
-          <li key={post.id}>
-            <a
-              onClick={() => setPostId(post.id)}
-              href="#"
-              style={
-                queryClient.getQueryData(['post', post.id])
-                  ? {
-                      fontWeight: 'bold',
-                      color: 'green',
-                    }
-                  : {}
-              }
-            >
-              <h3>{post.title}</h3>
-            </a>
-            <p>{post.body}</p>
-          </li>
-        ))}
+        {data?.pages.map((page) =>
+          page.map((post) => (
+            <li key={post.id}>
+              <a
+                onClick={() => setPostId(post.id)}
+                href="#"
+                style={
+                  queryClient.getQueryData(['post', post.id])
+                    ? {
+                        fontWeight: 'bold',
+                        color: 'green',
+                      }
+                    : {}
+                }
+              >
+                <h3>{post.title}</h3>
+              </a>
+              <p>{post.body}</p>
+            </li>
+          ))
+        )}
       </ul>
 
       <div>
-        <button onClick={() => setPage((old) => Math.max(old - 1, 1))} disabled={page === 1}>
-          Previous
-        </button>
-        <span> Page {page} </span>
-        <button
-          onClick={() => setPage((old) => (posts && posts.length === 5 ? old + 1 : old))}
-          disabled={!posts || posts.length < 5}
-        >
-          Next
-        </button>
+        {isFetchingNextPage ? (
+          <p>Loading more...</p>
+        ) : (
+          hasNextPage && <p>Scroll down to load more</p>
+        )}
       </div>
     </div>
   )
