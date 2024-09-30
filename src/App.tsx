@@ -1,23 +1,24 @@
-import React, { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createMockPost, fetchMockPosts, getPostById } from './data'
+import React, { useState } from "react";
+import {
+  useQuery,
+  useQueryClient,
+  useInfiniteQuery,
+} from "@tanstack/react-query";
+import { fetchMockPosts, fetchPaginatedPosts, getPostById } from "./data";
 
-function usePost(postId: number) {
-  return useQuery({
-    queryKey: ['post', postId],
-    queryFn: () => getPostById(postId),
-    enabled: !!postId,
-  })
-}
-
+// Component to display a single post
 const Post = ({
   postId,
   setPostId,
 }: {
-  postId: number
-  setPostId: React.Dispatch<React.SetStateAction<number>>
+  postId: number;
+  setPostId: React.Dispatch<React.SetStateAction<number>>;
 }) => {
-  const { status, data, error, isFetching } = usePost(postId)
+  const { status, data, error, isFetching } = useQuery({
+    queryKey: ["post", postId],
+    queryFn: () => getPostById(postId),
+    enabled: !!postId,
+  });
 
   return (
     <div>
@@ -26,9 +27,9 @@ const Post = ({
           Back
         </a>
       </div>
-      {!postId || status === 'pending' ? (
-        'Loading...'
-      ) : status === 'error' ? (
+      {!postId || status === "pending" ? (
+        "Loading..."
+      ) : status === "error" ? (
         <span>Error: {error.message}</span>
       ) : (
         <>
@@ -36,113 +37,146 @@ const Post = ({
           <div>
             <p>{data?.body}</p>
           </div>
-          <div>{isFetching ? 'Background Updating...' : ' '}</div>
+          <div>{isFetching ? "Background Updating..." : " "}</div>
         </>
       )}
     </div>
-  )
-}
+  );
+};
 
-const Posts = ({
+// Component for paginated posts
+const PaginatedPosts = ({
   setPostId,
 }: {
-  setPostId: React.Dispatch<React.SetStateAction<number>>
+  setPostId: React.Dispatch<React.SetStateAction<number>>;
 }) => {
-  const queryClient = useQueryClient()
-  const [title, setTitle] = useState('')
-  const [body, setBody] = useState('')
+  const [page, setPage] = useState(1);
 
   const {
     data: posts,
     isLoading,
     isError,
-  } = useQuery({ queryKey: ['posts'], queryFn: fetchMockPosts })
+    isFetching,
+  } = useQuery({
+    queryKey: ["posts", page],
+    queryFn: () => fetchMockPosts(page, 5), // Fetch 5 posts per page
+    placeholderData: [], // Provides a placeholder for data until new data is fetched
+  });
 
-  const mutation = useMutation({
-    mutationFn: createMockPost,
-    onSuccess: () => {
-      // Invalidate and refetch the posts query after a successful mutation
-      queryClient.invalidateQueries({ queryKey: ['posts'] })
-    },
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    mutation.mutate({
-      title,
-      body,
-      userId: 1, // default user ID
-      id: Date.now(),
-    })
-    setTitle('')
-    setBody('')
-  }
-
-  if (isLoading) return <div>Loading...</div>
-  if (isError) return <div>Error loading posts</div>
+  if (isLoading) return <div>Loading...</div>;
+  if (isError) return <div>Error loading posts</div>;
 
   return (
     <div>
-      <h1>Posts</h1>
-
-      <form onSubmit={handleSubmit}>
-        <div>
-          <input
-            type="text"
-            placeholder="Post title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </div>
-        <div>
-          <textarea
-            placeholder="Post body"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-          />
-        </div>
-        <button type="submit">Create Post</button>
-      </form>
-
+      <h1>Paginated Posts</h1>
       <ul>
         {posts?.map((post) => (
           <li key={post.id}>
-            <a
-              onClick={() => setPostId(post.id)}
-              href="#"
-              style={
-                // We can access the query data here to show bold links for
-                // ones that are cached
-                queryClient.getQueryData(['post', post.id])
-                  ? {
-                      fontWeight: 'bold',
-                      color: 'green',
-                    }
-                  : {}
-              }
-            >
+            <a onClick={() => setPostId(post.id)} href="#">
               <h3>{post.title}</h3>
             </a>
             <p>{post.body}</p>
           </li>
         ))}
       </ul>
-    </div>
-  )
-}
 
-const App = () => {
-  const [postId, setPostId] = React.useState(-1)
+      <div>
+        <button
+          onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+          disabled={page === 1 || isFetching}
+        >
+          Previous Page
+        </button>
+        <button
+          onClick={() => setPage((prev) => prev + 1)}
+          disabled={isFetching}
+        >
+          Next Page
+        </button>
+      </div>
+
+      {isFetching && <span>Loading...</span>}
+    </div>
+  );
+};
+
+// Component for infinite scrolling posts
+const InfinitePosts = ({
+  setPostId,
+}: {
+  setPostId: React.Dispatch<React.SetStateAction<number>>;
+}) => {
+  const {
+    data,
+    isLoading,
+    isError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["posts"],
+    queryFn: ({ pageParam = 1 }) => fetchPaginatedPosts(pageParam, 5), // Fetch 5 posts per page
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === 5 ? allPages.length + 1 : undefined;
+    },
+    initialPageParam: 1, // This is the initialPageParam that was missing
+  });
+
+  if (isLoading) return <div>Loading...</div>;
+  if (isError) return <div>Error loading posts</div>;
 
   return (
     <div>
+      <h1>Infinite Scroll Posts</h1>
+      <ul>
+        {data?.pages.map((page) =>
+          page.map((post: any) => (
+            <li key={post.id}>
+              <a onClick={() => setPostId(post.id)} href="#">
+                <h3>{post.title}</h3>
+              </a>
+              <p>{post.body}</p>
+            </li>
+          ))
+        )}
+      </ul>
+
+      <div>
+        <button
+          onClick={() => fetchNextPage()}
+          disabled={!hasNextPage || isFetchingNextPage}
+        >
+          {isFetchingNextPage
+            ? "Loading more..."
+            : hasNextPage
+            ? "Load More"
+            : "No more posts"}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Main App component
+const App = () => {
+  const [postId, setPostId] = useState(-1);
+  const [isInfiniteScroll, setIsInfiniteScroll] = useState(true); // Toggle between pagination and infinite scroll
+
+  return (
+    <div>
+      <button onClick={() => setIsInfiniteScroll(!isInfiniteScroll)}>
+        Toggle to {isInfiniteScroll ? "Paginated" : "Infinite Scroll"} Mode
+      </button>
+
       {postId > -1 ? (
         <Post postId={postId} setPostId={setPostId} />
+      ) : isInfiniteScroll ? (
+        <InfinitePosts setPostId={setPostId} />
       ) : (
-        <Posts setPostId={setPostId} />
+        <PaginatedPosts setPostId={setPostId} />
       )}
     </div>
-  )
-}
+  );
+};
 
-export default App
+export default App;
