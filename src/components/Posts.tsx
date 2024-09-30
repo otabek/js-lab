@@ -2,7 +2,8 @@ import { useState } from "react";
 import {
     useQueryClient,
     useQuery,
-    useMutation
+    useMutation,
+    keepPreviousData
 } from "@tanstack/react-query";
 import { createMockPost, fetchMockPosts } from "../data";
 
@@ -14,12 +15,13 @@ export function Posts({
     const queryClient = useQueryClient();
     const [title, setTitle] = useState("");
     const [body, setBody] = useState("");
+    const [currIdx, setCurrIdx] = useState(0);
 
-    const {
-        data: posts,
-        isLoading,
-        isError
-    } = useQuery({ queryKey: ["posts"], queryFn: fetchMockPosts });
+    const { data, isLoading, isError } = useQuery({
+        queryKey: ["posts", currIdx],
+        queryFn: () => fetchMockPosts(currIdx + 1),
+        placeholderData: keepPreviousData
+    });
 
     const mutation = useMutation({
         mutationFn: createMockPost,
@@ -68,7 +70,7 @@ export function Posts({
             </form>
 
             <ul>
-                {posts?.map((post) => (
+                {data?.posts.map((post) => (
                     <li key={post.id}>
                         <a
                             onClick={() => setPostId(post.id)}
@@ -89,6 +91,13 @@ export function Posts({
                         <p>{post.body}</p>
                     </li>
                 ))}
+
+                <button
+                    disabled={!data?.hasMore}
+                    onClick={() => setCurrIdx((prev) => prev + 1)}
+                >
+                    {data?.hasMore ? "Load More" : "No Posts Left"}
+                </button>
             </ul>
         </div>
     );
