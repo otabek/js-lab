@@ -1,16 +1,60 @@
-import { useState } from "react";
-import { Post, Posts } from "./components";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { userRegisterSchema, UserRegisterForm } from "./validators";
+import { useForm } from "react-hook-form";
+import { TextField, Button, Box, FormControl } from "@mui/material";
 
 export function App() {
-    const [postId, setPostId] = useState(-1);
+    const {
+        register,
+        reset,
+        handleSubmit,
+        formState: { errors }
+    } = useForm<UserRegisterForm>({
+        resolver: zodResolver(userRegisterSchema)
+    });
+
+    function onSubmit(data: UserRegisterForm) {
+        console.log(JSON.stringify(data));
+        reset();
+    }
 
     return (
-        <div>
-            {postId > -1 ? (
-                <Post postId={postId} setPostId={setPostId} />
-            ) : (
-                <Posts setPostId={setPostId} />
-            )}
-        </div>
+        <>
+            <h1>Register</h1>
+            <form onSubmit={handleSubmit(onSubmit)}>
+                <FormControl>
+                    <div className="initials">
+                        <TextField
+                            {...register("firstName")}
+                            error
+                            helperText={errors.firstName?.message}
+                            label="First Name"
+                            autoComplete="off"
+                            className="first-name"
+                        />
+                        <TextField
+                            {...register("lastName")}
+                            error
+                            helperText={errors.lastName?.message}
+                            label="Last Name"
+                            autoComplete="off"
+                            className="last-name"
+                        />
+                    </div>
+                    <div className="email">
+                        <TextField
+                            {...register("email")}
+                            error
+                            fullWidth
+                            helperText={errors.email?.message}
+                            label="Email"
+                        />
+                    </div>
+                    <Button type="submit" variant="contained">
+                        Register
+                    </Button>
+                </FormControl>
+            </form>
+        </>
     );
 }
