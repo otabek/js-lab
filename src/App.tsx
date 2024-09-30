@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createMockPost, fetchMockPosts, getPostById } from './data'
 
 function usePost(postId: number) {
@@ -53,25 +53,39 @@ const Posts = ({
   const [body, setBody] = useState('')
 
   const {
-    data: posts,
+    data,
     isLoading,
     isError,
-  } = useQuery({ queryKey: ['posts'], queryFn: fetchMockPosts })
-
+    fetchNextPage,
+    isFetchingNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['posts'],
+    queryFn: ({ pageParam = 1 }) => fetchMockPosts(pageParam, 5),
+    getNextPageParam: (lastPage, pages) => (lastPage.length === 5 ? pages.length + 1 : undefined),
+    initialPageParam: 1,
+  })
   const mutation = useMutation({
     mutationFn: createMockPost,
     onSuccess: () => {
-      // Invalidate and refetch the posts query after a successful mutation
       queryClient.invalidateQueries({ queryKey: ['posts'] })
     },
   })
+
+  
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
+    if (scrollHeight - scrollTop === clientHeight && hasNextPage) {
+      fetchNextPage()
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     mutation.mutate({
       title,
       body,
-      userId: 1, // default user ID
+      userId: 1,
       id: Date.now(),
     })
     setTitle('')
@@ -82,9 +96,8 @@ const Posts = ({
   if (isError) return <div>Error loading posts</div>
 
   return (
-    <div>
+    <div onScroll={handleScroll} style={{ minHeight: '500px', overflowY: 'auto' }}>
       <h1>Posts</h1>
-
       <form onSubmit={handleSubmit}>
         <div>
           <input
@@ -105,28 +118,35 @@ const Posts = ({
       </form>
 
       <ul>
-        {posts?.map((post) => (
-          <li key={post.id}>
-            <a
-              onClick={() => setPostId(post.id)}
-              href="#"
-              style={
-                // We can access the query data here to show bold links for
-                // ones that are cached
-                queryClient.getQueryData(['post', post.id])
-                  ? {
-                      fontWeight: 'bold',
-                      color: 'green',
-                    }
-                  : {}
-              }
-            >
-              <h3>{post.title}</h3>
-            </a>
-            <p>{post.body}</p>
-          </li>
-        ))}
+
+      {data?.pages.map((page) =>
+          page.map((post) => (
+            <li key={post.id}>
+              <a
+                onClick={() => setPostId(post.id)}
+                href="#"
+                style={
+                  queryClient.getQueryData(['post', post.id])
+                    ? {
+                        fontWeight: 'bold',
+                        color: 'green',
+                      }
+                    : {}
+                }
+              >
+                <h3>{post.title}</h3>
+              </a>
+              <p>{post.body}</p>
+            </li>
+          ))
+        )}
+
       </ul>
+ {isFetchingNextPage ? (
+          <p>Loading more...</p>
+        ) : (
+          hasNextPage && <p>Scroll down to load more</p>
+        )}
     </div>
   )
 }
