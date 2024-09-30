@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createMockPost, fetchMockPosts, getPostById } from './data'
+import { createMockPost, fetchMockPostsByPage, getPostById } from './data'
 
 function usePost(postId: number) {
   return useQuery({
@@ -51,17 +51,21 @@ const Posts = ({
   const queryClient = useQueryClient()
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
+  const [page, setPage] = useState(1)
 
   const {
     data: posts,
     isLoading,
     isError,
-  } = useQuery({ queryKey: ['posts'], queryFn: fetchMockPosts })
+  } = useQuery({
+    queryKey: ['posts', page],
+    queryFn: () => fetchMockPostsByPage(page, 5),
+    // keepPreviousData: true, // Keep previous data while fetching the next page
+  })
 
   const mutation = useMutation({
     mutationFn: createMockPost,
     onSuccess: () => {
-      // Invalidate and refetch the posts query after a successful mutation
       queryClient.invalidateQueries({ queryKey: ['posts'] })
     },
   })
@@ -111,8 +115,6 @@ const Posts = ({
               onClick={() => setPostId(post.id)}
               href="#"
               style={
-                // We can access the query data here to show bold links for
-                // ones that are cached
                 queryClient.getQueryData(['post', post.id])
                   ? {
                       fontWeight: 'bold',
@@ -127,6 +129,19 @@ const Posts = ({
           </li>
         ))}
       </ul>
+
+      <div>
+        <button onClick={() => setPage((old) => Math.max(old - 1, 1))} disabled={page === 1}>
+          Previous
+        </button>
+        <span> Page {page} </span>
+        <button
+          onClick={() => setPage((old) => (posts && posts.length === 5 ? old + 1 : old))}
+          disabled={!posts || posts.length < 5}
+        >
+          Next
+        </button>
+      </div>
     </div>
   )
 }
