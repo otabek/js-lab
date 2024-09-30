@@ -1,7 +1,10 @@
-import React, { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import React, { useState } from "react";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { createMockPost, fetchMockPosts, getPostById } from './data'
-
 function usePost(postId: number) {
   return useQuery({
     queryKey: ['post', postId],
@@ -14,7 +17,7 @@ const Post = ({
   postId,
   setPostId,
 }: {
-  postId: number
+  postId: number;
   setPostId: React.Dispatch<React.SetStateAction<number>>
 }) => {
   const { status, data, error, isFetching } = usePost(postId)
@@ -51,27 +54,36 @@ const Posts = ({
   const queryClient = useQueryClient()
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
+  const [pageParams, setPageParams] = useState(0);
+  
 
   const {
     data: posts,
     isLoading,
     isError,
-  } = useQuery({ queryKey: ['posts'], queryFn: fetchMockPosts })
+  }= useQuery({
+    queryKey: ['posts', pageParams],
+    queryFn: () => fetchMockPosts(pageParams, 5),
+    // keepPreviousData: true, // Keep previous data while fetching the next page
+  })
+  
 
   const mutation = useMutation({
     mutationFn: createMockPost,
     onSuccess: () => {
-      // Invalidate and refetch the posts query after a successful mutation
-      queryClient.invalidateQueries({ queryKey: ['posts'] })
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
     },
-  })
+    onError: (error) => {
+      console.error("Error creating post:", error);
+    },
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     mutation.mutate({
       title,
       body,
-      userId: 1, // default user ID
+      userId: 1, 
       id: Date.now(),
     })
     setTitle('')
@@ -80,7 +92,7 @@ const Posts = ({
 
   if (isLoading) return <div>Loading...</div>
   if (isError) return <div>Error loading posts</div>
-
+  
   return (
     <div>
       <h1>Posts</h1>
@@ -105,28 +117,43 @@ const Posts = ({
       </form>
 
       <ul>
-        {posts?.map((post) => (
-          <li key={post.id}>
-            <a
-              onClick={() => setPostId(post.id)}
-              href="#"
-              style={
-                // We can access the query data here to show bold links for
-                // ones that are cached
-                queryClient.getQueryData(['post', post.id])
-                  ? {
-                      fontWeight: 'bold',
-                      color: 'green',
-                    }
-                  : {}
-              }
-            >
-              <h3>{post.title}</h3>
-            </a>
-            <p>{post.body}</p>
-          </li>
+        {posts?.map((post: any) => (
+          <React.Fragment key={post.id}>
+              <li key={post.id}>
+                <a
+                  onClick={() => setPostId(post.id)}
+                  href="#"
+                  style={
+                    queryClient.getQueryData(['post', post.id])
+                      ? {
+                          fontWeight: 'bold',
+                          color: 'green',
+                        }
+                      : {}
+                  }
+                >
+                  <h3>{post.title}</h3>
+                </a>
+                <p>{post.body}</p>
+              </li>
+          </React.Fragment>
         ))}
       </ul>
+
+      <div>
+      <button
+        disabled={pageParams === 0}
+        onClick={() => setPageParams((prevPage) => prevPage - 1)}
+      >
+        Prev page
+      </button>
+      <button
+        disabled={pageParams === 2}
+        onClick={() => setPageParams((prevPage) => prevPage + 1)}
+      >
+        Next Page
+      </button>
+      </div>
     </div>
   )
 }
@@ -136,13 +163,15 @@ const App = () => {
 
   return (
     <div>
-      {postId > -1 ? (
+      {/* {postId > -1 ? (
         <Post postId={postId} setPostId={setPostId} />
-      ) : (
+      ) : ( */}
+        {/* <Post postId={postId} setPostId={setPostId} /> */}
         <Posts setPostId={setPostId} />
-      )}
+      {/* )} */}
     </div>
   )
 }
 
 export default App
+

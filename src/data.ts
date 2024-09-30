@@ -1,11 +1,10 @@
 export type Post = {
-  id: number
-  title: string
-  body: string
-  userId: number
-}
+  id: number;
+  title: string;
+  body: string;
+  userId: number;
+};
 
-// Initial mock posts
 let posts: Post[] = [
   {
     id: 1,
@@ -25,16 +24,21 @@ let posts: Post[] = [
     body: 'This is the body of Mock Post 3',
     userId: 2,
   },
-]
+];
 
-// Simulate fetching all posts
-export const fetchMockPosts = async (): Promise<Array<Post>> => {
+export const fetchMockPosts = async (
+  pageParams: number,
+  limit: number
+): Promise<Array<Post>> => {
   return new Promise((resolve) => {
-    setTimeout(() => resolve(posts), 500) // Simulate network latency
-  })
-}
+    setTimeout(() => {
+      const start = (pageParams - 1) * limit
+      const end = start + limit
+      resolve(posts.slice(start, end))
+    }, 500) 
+  });
+};
 
-// Simulate fetching a single post by ID
 export const fetchMockPostById = async (
   id: number
 ): Promise<Post | undefined> => {
@@ -42,16 +46,16 @@ export const fetchMockPostById = async (
     setTimeout(() => {
       const post = posts.find((post) => post.id === id)
       resolve(post)
-    }, 500) // Simulate network latency
+    }, 500)
   })
 }
 
-export const createMockPost = async (post: Post): Promise<Post> => {
+export const createMockPost = async (newPost: Post): Promise<Post> => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      posts = [...posts, post]
-      resolve(post)
-    }, 500) // Simulate network latency
+      posts.push(newPost);
+      resolve(newPost);
+    }, 500) 
   })
 }
 
