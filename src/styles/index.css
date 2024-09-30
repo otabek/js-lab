@@ -1,0 +1,41 @@
+* {
+    margin: 0;
+    padding: 0;
+    font-family:
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Oxygen,
+        Ubuntu,
+        Cantarell,
+        "Open Sans",
+        "Helvetica Neue",
+        sans-serif;
+}
+
+form,
+h1 {
+    text-align: center;
+}
+
+h1 {
+    font-size: 45px;
+    margin: 40px;
+}
+
+.initials {
+    display: flex;
+    column-gap: 15px;
+}
+
+.email,
+.initials {
+    margin-bottom: 25px;
+}
+
+.first-name,
+.last-name {
+    width: 290px;
+}
