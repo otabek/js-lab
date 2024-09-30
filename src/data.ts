@@ -28,13 +28,16 @@ let posts: Post[] = [
 ]
 
 // Simulate fetching all posts
-export const fetchMockPosts = async (): Promise<Array<Post>> => {
+export const fetchMockPosts = async (pageParam: number, limit: number): Promise<Array<Post>> => {
   return new Promise((resolve) => {
-    setTimeout(() => resolve(posts), 500) // Simulate network latency
+    setTimeout(() => {
+      const start = (pageParam - 1) * limit
+      const end = start + limit
+      resolve(posts.slice(start, end))
+    }, 500) 
   })
 }
 
-// Simulate fetching a single post by ID
 export const fetchMockPostById = async (
   id: number
 ): Promise<Post | undefined> => {
