@@ -1,2 +1,2 @@
 export * from "./Post.component";
-export * from "./Posts.component";
+export * from "./InifinitePosts.component";

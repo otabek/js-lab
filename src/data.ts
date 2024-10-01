@@ -23,26 +23,23 @@ for (let i = 0; i < MOCK_DATA_LIMIT; i++) {
 }
 
 // Simulate fetching all posts
-export const fetchMockPosts = async (
-  page: number = 1,
-): Promise<Array<Post>> => {
-  return new Promise((resolve, reject) => {
-    if (page <= 0) {
-      setTimeout(() => reject("Page number cannot be less then or equal 0!"));
-    }
-    const paginatedPosts = paginator(posts, POST_LIMIT_IN_PAGE, page);
-    setTimeout(() => resolve(paginatedPosts), 500); // Simulate network latency
+export const fetchMockPosts = async ({
+  pageParam,
+}: {
+  pageParam: number;
+}): Promise<{ data: Post[]; currentPage: number; nextPage: number | null }> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        data: posts.slice(pageParam, pageParam + POST_LIMIT_IN_PAGE),
+        currentPage: pageParam,
+        nextPage:
+          pageParam + POST_LIMIT_IN_PAGE < posts?.length
+            ? pageParam + POST_LIMIT_IN_PAGE
+            : null,
+      });
+    }, 500); // Simulate network latency
   });
-};
-
-export const paginator = <T>(
-  data: T[],
-  pageLimit: number,
-  pageNumber: number,
-) => {
-  const pageStartIndex = pageLimit * (pageNumber - 1);
-  const pageEndIndex = pageStartIndex + pageLimit;
-  return data.slice(pageStartIndex, pageEndIndex);
 };
 
 // Simulate fetching a single post by ID

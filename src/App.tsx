@@ -1,5 +1,5 @@
 import React from "react";
-import { Post, Posts } from "./components";
+import { InfinitePosts, Post } from "./components";
 
 const App = () => {
   const [postId, setPostId] = React.useState(-1);
@@ -9,7 +9,7 @@ const App = () => {
       {postId > -1 ? (
         <Post postId={postId} setPostId={setPostId} />
       ) : (
-        <Posts setPostId={setPostId} />
+        <InfinitePosts setPostId={setPostId} />
       )}
     </div>
   );
