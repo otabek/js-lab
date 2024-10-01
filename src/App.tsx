@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import React, { useEffect, useState } from 'react'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createMockPost, fetchMockPosts, getPostById } from './data'
 
 function usePost(postId: number) {
@@ -51,12 +51,24 @@ const Posts = ({
   const queryClient = useQueryClient()
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
+  const [page, setPage] = useState(1)
+  const limit = 5;
 
   const {
     data: posts,
     isLoading,
     isError,
-  } = useQuery({ queryKey: ['posts'], queryFn: fetchMockPosts })
+    isPlaceholderData,
+  } = useQuery({ queryKey: ['posts', page], queryFn: () => fetchMockPosts(page, limit), placeholderData: keepPreviousData })
+
+  useEffect(() => {
+    if (!isPlaceholderData) {
+      queryClient.prefetchQuery({
+        queryKey: ['posts', page + 1],
+        queryFn: () => fetchMockPosts(page + 1, limit),
+      })
+    }
+  }, [posts, isPlaceholderData, page, queryClient])
 
   const mutation = useMutation({
     mutationFn: createMockPost,
@@ -80,6 +92,8 @@ const Posts = ({
 
   if (isLoading) return <div>Loading...</div>
   if (isError) return <div>Error loading posts</div>
+
+  const hasMorePosts = posts && posts.length === limit;
 
   return (
     <div>
@@ -115,9 +129,9 @@ const Posts = ({
                 // ones that are cached
                 queryClient.getQueryData(['post', post.id])
                   ? {
-                      fontWeight: 'bold',
-                      color: 'green',
-                    }
+                    fontWeight: 'bold',
+                    color: 'green',
+                  }
                   : {}
               }
             >
@@ -127,6 +141,19 @@ const Posts = ({
           </li>
         ))}
       </ul>
+      {page !== 1 &&
+        <button onClick={() => setPage((prev) => Math.max(prev - 1, 1))}>
+          Previous posts
+        </button>
+      }
+      <button
+        onClick={() => {
+          setPage((prev) => (hasMorePosts ? prev + 1 : prev));
+        }}
+        disabled={isPlaceholderData || !hasMorePosts}
+      >
+        Load more
+      </button>
     </div>
   )
 }
