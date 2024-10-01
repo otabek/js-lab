@@ -1,6 +1,9 @@
-import React, { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createMockPost, fetchMockPosts, getPostById } from './data'
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useInView } from 'react-intersection-observer';
+
+import { createMockPost, fetchMockPosts, getPostById } from './data';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 function usePost(postId: number) {
   return useQuery({
@@ -29,7 +32,7 @@ const Post = ({
       {!postId || status === 'pending' ? (
         'Loading...'
       ) : status === 'error' ? (
-        <span>Error: {error.message}</span>
+        <span>Error: {error instanceof Error ? error.message : 'Unknown error occurred'}</span>
       ) : (
         <>
           <h1>{data?.title}</h1>
@@ -43,20 +46,34 @@ const Post = ({
   )
 }
 
-const Posts = ({
-  setPostId,
-}: {
-  setPostId: React.Dispatch<React.SetStateAction<number>>
-}) => {
+const InfinitePosts = ({ setPostId }: { setPostId: React.Dispatch<React.SetStateAction<number>> }) => {
   const queryClient = useQueryClient()
+  const {
+    data,
+    error,
+    status,
+    fetchNextPage,
+    isFetchingNextPage
+  } = useInfiniteQuery({
+    queryKey: ['posts'],
+    queryFn: fetchMockPosts,
+    initialPageParam: 0,
+    getNextPageParam: (page) => page.nextPage,
+  });
+
+
+  const { ref, inView } = useInView();
+
+  useEffect(() => {
+    console.log(inView);
+
+    if (inView) {
+      fetchNextPage();
+    }
+  }, [fetchNextPage, inView]);
+
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
-
-  const {
-    data: posts,
-    isLoading,
-    isError,
-  } = useQuery({ queryKey: ['posts'], queryFn: fetchMockPosts })
 
   const mutation = useMutation({
     mutationFn: createMockPost,
@@ -78,8 +95,8 @@ const Posts = ({
     setBody('')
   }
 
-  if (isLoading) return <div>Loading...</div>
-  if (isError) return <div>Error loading posts</div>
+  if (status === 'pending') return <div>Loading...</div>;
+  if (status === 'error') return <div>{error.message}</div>;
 
   return (
     <div>
@@ -104,45 +121,50 @@ const Posts = ({
         <button type="submit">Create Post</button>
       </form>
 
-      <ul>
-        {posts?.map((post) => (
-          <li key={post.id}>
-            <a
-              onClick={() => setPostId(post.id)}
-              href="#"
-              style={
-                // We can access the query data here to show bold links for
-                // ones that are cached
-                queryClient.getQueryData(['post', post.id])
-                  ? {
+      {data?.pages.map((page) => (
+        <ul key={page.currentPage}>
+          {page.data.map((post) => (
+            <li key={post.id}>
+              <a
+                onClick={() => setPostId(post.id)}
+                href="#"
+                style={
+                  // We can access the query data here to show bold links for
+                  // ones that are cached
+                  queryClient.getQueryData(['post', post.id])
+                    ? {
                       fontWeight: 'bold',
                       color: 'green',
                     }
-                  : {}
-              }
-            >
-              <h3>{post.title}</h3>
-            </a>
-            <p>{post.body}</p>
-          </li>
-        ))}
-      </ul>
+                    : {}
+                }
+              >
+                <h3>{post.title}</h3>
+              </a>
+              <p>{post.body}</p>
+            </li>
+          ))}
+        </ul>
+      ))}
+      <div ref={ref} style={{height: "40px"}}>{isFetchingNextPage && 'Loading...'}</div>
     </div>
-  )
+  );
 }
 
+
 const App = () => {
-  const [postId, setPostId] = React.useState(-1)
+  const [postId, setPostId] = useState(-1)
 
   return (
     <div>
       {postId > -1 ? (
         <Post postId={postId} setPostId={setPostId} />
       ) : (
-        <Posts setPostId={setPostId} />
+        <InfinitePosts setPostId={setPostId} />
       )}
     </div>
-  )
+  );
 }
+
 
 export default App

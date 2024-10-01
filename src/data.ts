@@ -6,33 +6,32 @@ export type Post = {
 }
 
 // Initial mock posts
-let posts: Post[] = [
-  {
-    id: 1,
-    title: 'Mock Post 1',
-    body: 'This is the body of Mock Post 1',
-    userId: 1,
-  },
-  {
-    id: 2,
-    title: 'Mock Post 2',
-    body: 'This is the body of Mock Post 2',
-    userId: 1,
-  },
-  {
-    id: 3,
-    title: 'Mock Post 3',
-    body: 'This is the body of Mock Post 3',
-    userId: 2,
-  },
-]
+let posts: Post[] = Array.from({ length: 200 }).map((_, i) => ({
+  id: i + 1,
+  title: `Mock Post ${i + 1}`,
+  body: `This is the body of Mock Post ${i + 1}`,
+  userId: 1,
+}))
 
-// Simulate fetching all posts
-export const fetchMockPosts = async (): Promise<Array<Post>> => {
+const limit = 5;
+
+// Simulate fetching all posts and handle pagination
+export function fetchMockPosts({ pageParam }: { pageParam: number }): Promise<{
+  data: Post[];
+  currentPage: number;
+  nextPage: number | null;
+}> {
   return new Promise((resolve) => {
-    setTimeout(() => resolve(posts), 500) // Simulate network latency
-  })
+    setTimeout(() => {
+      resolve({
+        data: posts.slice(pageParam, pageParam + limit),
+        currentPage: pageParam,
+        nextPage: pageParam + limit < posts.length ? pageParam + limit : null,
+      });
+    }, 500); // Simulate network latency
+  });
 }
+
 
 // Simulate fetching a single post by ID
 export const fetchMockPostById = async (
