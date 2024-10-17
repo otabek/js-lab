@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createMockPost, fetchMockPosts, getPostById } from './data'
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
+import { createMockPost, fetchMockPosts, getPostById, PostType } from './data'
+import { useInView } from 'react-intersection-observer'
 
 function usePost(postId: number) {
   return useQuery({
@@ -53,29 +54,37 @@ const Posts = ({
   const [body, setBody] = useState('')
 
   const {
-    data: posts,
+    data,
     isLoading,
     isError,
-  } = useQuery({ queryKey: ['posts'], queryFn: fetchMockPosts })
-
-  const mutation = useMutation({
-    mutationFn: createMockPost,
-    onSuccess: () => {
-      // Invalidate and refetch the posts query after a successful mutation
-      queryClient.invalidateQueries({ queryKey: ['posts'] })
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery<PostType[], Error>({
+    queryKey: ['posts'],
+    queryFn: async ({ pageParam = 1 }) => {
+      return await fetchMockPosts(pageParam as number, 5) 
     },
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length < 5 ? undefined : allPages.length + 1
+    },
+    initialPageParam: undefined
   })
+
+  const { ref, inView } = useInView()
+
+  React.useEffect(() => {
+    if (inView && hasNextPage) {
+      fetchNextPage()
+    }
+  }, [inView, fetchNextPage, hasNextPage])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    mutation.mutate({
-      title,
-      body,
-      userId: 1, // default user ID
-      id: Date.now(),
-    })
+    createMockPost({ title, body, userId: 1, id: Date.now() }) // Default userId and id
     setTitle('')
     setBody('')
+    queryClient.invalidateQueries({ queryKey: ['posts'] })
   }
 
   if (isLoading) return <div>Loading...</div>
@@ -105,34 +114,39 @@ const Posts = ({
       </form>
 
       <ul>
-        {posts?.map((post) => (
-          <li key={post.id}>
-            <a
-              onClick={() => setPostId(post.id)}
-              href="#"
-              style={
-                // We can access the query data here to show bold links for
-                // ones that are cached
-                queryClient.getQueryData(['post', post.id])
-                  ? {
-                      fontWeight: 'bold',
-                      color: 'green',
-                    }
-                  : {}
-              }
-            >
-              <h3>{post.title}</h3>
-            </a>
-            <p>{post.body}</p>
-          </li>
+        {data?.pages.map((page, index) => (
+          <React.Fragment key={index}>
+            {page.map((post) => (
+              <li key={post.id}>
+                <a
+                  onClick={() => setPostId(post.id)}
+                  href="#"
+                  style={
+                    queryClient.getQueryData(['post', post.id])
+                      ? {
+                          fontWeight: 'bold',
+                          color: 'green',
+                        }
+                      : {}
+                  }
+                >
+                  <h3>{post.title}</h3>
+                </a>
+                <p>{post.body}</p>
+              </li>
+            ))}
+          </React.Fragment>
         ))}
       </ul>
+      <div ref={ref} style={{ height: '20px', backgroundColor: 'transparent' }}>
+        {isFetchingNextPage ? 'Loading more...' : 'Load more'}
+      </div>
     </div>
   )
 }
 
 const App = () => {
-  const [postId, setPostId] = React.useState(-1)
+  const [postId, setPostId] = useState(-1)
 
   return (
     <div>
