@@ -25,12 +25,34 @@ let posts: Post[] = [
     body: 'This is the body of Mock Post 3',
     userId: 2,
   },
+  {
+    id: 4,
+    title: 'Mock Post 4',
+    body: 'This is the body of Mock Post 1',
+    userId: 1,
+  },
+  {
+    id: 5,
+    title: 'Mock Post 5',
+    body: 'This is the body of Mock Post 2',
+    userId: 1,
+  },
+  {
+    id: 6,
+    title: 'Mock Post 6',
+    body: 'This is the body of Mock Post 3',
+    userId: 2,
+  },
 ]
 
 // Simulate fetching all posts
-export const fetchMockPosts = async (): Promise<Array<Post>> => {
+export const fetchMockPosts = async (page: number, limit: number): Promise<Array<Post>> => {
   return new Promise((resolve) => {
-    setTimeout(() => resolve(posts), 500) // Simulate network latency
+    setTimeout(() => {
+      const start = (page - 1) * limit
+      const end = start + limit
+      resolve(posts.slice(start, end))
+    }, 500) // Simulate network latency
   })
 }
 
